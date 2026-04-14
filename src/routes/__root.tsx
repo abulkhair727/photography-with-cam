@@ -36,6 +36,10 @@ export const Route = createRootRoute({
       { name: "author", content: "Abul Khair" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { property: "og:title", content: "Photography With Cam" },
+      { name: "twitter:title", content: "Photography With Cam" },
+      { property: "og:description", content: "Professional photography by Abul Khair — capturing real moments and emotions." },
+      { name: "twitter:description", content: "Professional photography by Abul Khair — capturing real moments and emotions." },
     ],
     links: [
       {
