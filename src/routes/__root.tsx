@@ -40,6 +40,8 @@ export const Route = createRootRoute({
       { name: "twitter:title", content: "Photography With Cam" },
       { property: "og:description", content: "Professional photography by Abul Khair — capturing real moments and emotions." },
       { name: "twitter:description", content: "Professional photography by Abul Khair — capturing real moments and emotions." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/pY1YJnIjb4eIwryyZxcsDT557sO2/social-images/social-1776230856415-file_00000000bcd47208b78f7eb2d92ed682.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/pY1YJnIjb4eIwryyZxcsDT557sO2/social-images/social-1776230856415-file_00000000bcd47208b78f7eb2d92ed682.webp" },
     ],
     links: [
       {
