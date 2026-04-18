@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Sidebar } from "@/components/Sidebar";
 import { HeroSection } from "@/components/HeroSection";
-import { GallerySection, type Photo } from "@/components/GallerySection";
+import { GallerySection } from "@/components/GallerySection";
 import { UploadModal } from "@/components/UploadModal";
 import { AboutSection } from "@/components/AboutSection";
 import { ServicesSection } from "@/components/ServicesSection";
@@ -11,6 +11,7 @@ import { ContactSection } from "@/components/ContactSection";
 import { Footer } from "@/components/Footer";
 import { MobileNav } from "@/components/MobileNav";
 import { Toast } from "@/components/Toast";
+import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -25,45 +26,28 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
+  const { isAdmin } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const [photos, setPhotos] = useState<Photo[]>(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      return JSON.parse(localStorage.getItem("pwc_photos") || "[]");
-    } catch {
-      return [];
-    }
-  });
-
-  const savePhotos = useCallback((newPhotos: Photo[]) => {
-    setPhotos(newPhotos);
-    try {
-      localStorage.setItem("pwc_photos", JSON.stringify(newPhotos));
-    } catch {}
-  }, []);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const handleUploadClick = () => {
     setSidebarOpen(false);
+    if (!isAdmin) {
+      setToast("⚠️ ছবি আপলোড করতে admin লগইন করুন (/admin)");
+      return;
+    }
     setTimeout(() => setModalOpen(true), 320);
   };
 
-  const handleAddPhoto = (photo: { src: string; name: string; cat: string }) => {
-    const newPhotos = [{ ...photo, id: Date.now() }, ...photos];
-    savePhotos(newPhotos);
+  const handleAdded = () => {
     setModalOpen(false);
+    setRefreshKey((k) => k + 1);
     setToast("✅ গ্যালারিতে যোগ হয়েছে!");
     setTimeout(() => {
       document.getElementById("gallery")?.scrollIntoView({ behavior: "smooth" });
     }, 100);
-  };
-
-  const handleDeletePhoto = (index: number) => {
-    const newPhotos = [...photos];
-    newPhotos.splice(index, 1);
-    savePhotos(newPhotos);
-    setToast("ছবি মুছে ফেলা হয়েছে");
   };
 
   return (
@@ -80,14 +64,15 @@ function Index() {
       <MobileNav />
       <HeroSection />
       <GallerySection
-        photos={photos}
-        onDelete={handleDeletePhoto}
+        refreshKey={refreshKey}
         onUploadClick={handleUploadClick}
+        onToast={setToast}
       />
       <UploadModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        onAdd={handleAddPhoto}
+        onAdded={handleAdded}
+        onToast={setToast}
       />
       <AboutSection />
       <ServicesSection />
