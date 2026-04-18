@@ -1,17 +1,20 @@
 import { useState, useRef, useCallback } from "react";
 import { Upload } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface UploadModalProps {
   open: boolean;
   onClose: () => void;
-  onAdd: (photo: { src: string; name: string; cat: string }) => void;
+  onAdded: () => void;
+  onToast: (msg: string) => void;
 }
 
-export function UploadModal({ open, onClose, onAdd }: UploadModalProps) {
+export function UploadModal({ open, onClose, onAdded, onToast }: UploadModalProps) {
   const [preview, setPreview] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [cat, setCat] = useState("Portrait");
   const [dragging, setDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const pendingFile = useRef<File | null>(null);
 
@@ -23,20 +26,54 @@ export function UploadModal({ open, onClose, onAdd }: UploadModalProps) {
     if (!name) setName(f.name.replace(/\.[^.]+$/, ""));
   }, [name]);
 
-  const handleAdd = () => {
-    if (!pendingFile.current || !preview) return;
-    onAdd({ src: preview, name: name.trim() || "Untitled", cat });
+  const reset = () => {
     setPreview(null);
     setName("");
     setCat("Portrait");
     pendingFile.current = null;
   };
 
+  const handleAdd = async () => {
+    const file = pendingFile.current;
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        onToast("⚠️ লগইন করুন (/admin)");
+        setUploading(false);
+        return;
+      }
+
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+      const { error: upErr } = await supabase.storage.from("gallery").upload(path, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+      if (upErr) throw upErr;
+
+      const { error: insErr } = await supabase.from("photos").insert({
+        name: name.trim() || "Untitled",
+        category: cat,
+        storage_path: path,
+        uploaded_by: user.id,
+      });
+      if (insErr) throw insErr;
+
+      reset();
+      onAdded();
+    } catch (e: any) {
+      onToast("❌ আপলোড ব্যর্থ: " + (e.message || "unknown"));
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleClose = () => {
-    setPreview(null);
-    setName("");
-    setCat("Portrait");
-    pendingFile.current = null;
+    reset();
     onClose();
   };
 
@@ -114,15 +151,17 @@ export function UploadModal({ open, onClose, onAdd }: UploadModalProps) {
         <div className="flex gap-2.5 mt-1">
           <button
             onClick={handleClose}
-            className="flex-1 bg-filter-bg text-foreground border-none cursor-pointer py-[11px] rounded-[11px] text-[0.9rem] font-medium font-body"
+            disabled={uploading}
+            className="flex-1 bg-filter-bg text-foreground border-none cursor-pointer py-[11px] rounded-[11px] text-[0.9rem] font-medium font-body disabled:opacity-60"
           >
             বাতিল
           </button>
           <button
             onClick={handleAdd}
-            className="flex-[2] bg-blue text-white border-none cursor-pointer py-[11px] rounded-[11px] text-[0.9rem] font-semibold font-body shadow-[0_4px_16px_rgba(26,110,245,0.3)] hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(26,110,245,0.4)] transition-all"
+            disabled={uploading || !preview}
+            className="flex-[2] bg-blue text-white border-none cursor-pointer py-[11px] rounded-[11px] text-[0.9rem] font-semibold font-body shadow-[0_4px_16px_rgba(26,110,245,0.3)] hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(26,110,245,0.4)] transition-all disabled:opacity-60 disabled:hover:translate-y-0"
           >
-            গ্যালারিতে যোগ করুন
+            {uploading ? "আপলোড হচ্ছে..." : "গ্যালারিতে যোগ করুন"}
           </button>
         </div>
       </div>
