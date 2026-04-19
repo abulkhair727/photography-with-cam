@@ -39,13 +39,6 @@ export function UploadModal({ open, onClose, onAdded, onToast }: UploadModalProp
 
     setUploading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        onToast("⚠️ লগইন করুন (/admin)");
-        setUploading(false);
-        return;
-      }
-
       const ext = file.name.split(".").pop() || "jpg";
       const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
@@ -59,7 +52,6 @@ export function UploadModal({ open, onClose, onAdded, onToast }: UploadModalProp
         name: name.trim() || "Untitled",
         category: cat,
         storage_path: path,
-        uploaded_by: user.id,
       });
       if (insErr) throw insErr;
 
