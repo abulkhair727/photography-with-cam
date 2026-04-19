@@ -1,4 +1,6 @@
-import { Camera, Home, Image, User, Briefcase, Mail, X, Plus } from "lucide-react";
+import { Camera, Home, Image, User, Briefcase, Mail, X, Plus, Download, Smartphone, Check } from "lucide-react";
+import { useState } from "react";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
 
 interface SidebarProps {
   open: boolean;
@@ -15,6 +17,21 @@ const navItems = [
 ];
 
 export function Sidebar({ open, onClose, onUploadClick }: SidebarProps) {
+  const { canInstall, isInstalled, isIOS, promptInstall } = usePWAInstall();
+  const [showIOSHelp, setShowIOSHelp] = useState(false);
+
+  const handleInstall = async () => {
+    if (isIOS && !isInstalled) {
+      setShowIOSHelp(true);
+      return;
+    }
+    if (canInstall) {
+      await promptInstall();
+    } else {
+      setShowIOSHelp(true);
+    }
+  };
+
   return (
     <>
       {/* Overlay */}
@@ -72,6 +89,59 @@ export function Sidebar({ open, onClose, onUploadClick }: SidebarProps) {
             </a>
           ))}
         </nav>
+
+        {/* Install App Section */}
+        <div className="px-[18px] pb-3 pt-1">
+          <button
+            onClick={handleInstall}
+            disabled={isInstalled}
+            className="w-full flex items-center gap-3 py-3 px-3.5 rounded-[13px] border border-border bg-filter-bg/60 hover:bg-filter-bg hover:border-blue/40 transition-all disabled:opacity-60 disabled:cursor-not-allowed group"
+          >
+            <div
+              className="w-9 h-9 rounded-[10px] flex-shrink-0 flex items-center justify-center shadow-[0_3px_10px_rgba(26,110,245,0.35)]"
+              style={{ background: "linear-gradient(135deg, #1a6ef5, #0ea5e9)" }}
+            >
+              {isInstalled ? (
+                <Check className="w-[18px] h-[18px] text-white" />
+              ) : (
+                <Download className="w-[17px] h-[17px] text-white" />
+              )}
+            </div>
+            <div className="flex-1 text-left">
+              <div className="text-[0.88rem] font-semibold text-foreground leading-tight">
+                {isInstalled ? "App ইনস্টল হয়েছে" : "App ডাউনলোড করুন"}
+              </div>
+              <div className="text-[0.7rem] text-muted-foreground mt-0.5 flex items-center gap-1">
+                <Smartphone className="w-3 h-3" />
+                {isInstalled ? "Home screen-এ পাবেন" : "ফোনে অ্যাপ এর মতো চলবে"}
+              </div>
+            </div>
+          </button>
+
+          {showIOSHelp && !isInstalled && (
+            <div className="mt-2.5 p-3 rounded-[11px] bg-blue/10 border border-blue/30 text-[0.75rem] text-foreground leading-relaxed">
+              {isIOS ? (
+                <>
+                  <strong className="text-blue">iPhone-এ ইনস্টল করুন:</strong>
+                  <br />
+                  Safari-তে নিচের <strong>Share</strong> বাটন (⬆️) চাপুন → <strong>"Add to Home Screen"</strong> সিলেক্ট করুন।
+                </>
+              ) : (
+                <>
+                  <strong className="text-blue">ইনস্টল করতে:</strong>
+                  <br />
+                  ব্রাউজার মেনু (⋮) খুলুন → <strong>"Install app"</strong> বা <strong>"Add to Home screen"</strong> সিলেক্ট করুন।
+                </>
+              )}
+              <button
+                onClick={() => setShowIOSHelp(false)}
+                className="block mt-2 text-blue underline text-[0.72rem]"
+              >
+                বুঝেছি
+              </button>
+            </div>
+          )}
+        </div>
 
         <div className="px-5 py-4 border-t border-border text-[0.75rem] text-muted-foreground">
           © 2025 Photography With Cam · Abul Khair
