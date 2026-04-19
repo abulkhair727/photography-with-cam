@@ -1,50 +1,51 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import type { Session, User } from "@supabase/supabase-js";
+
+// Simple password-based admin auth (frontend-only, INSECURE by design)
+// Password is checked against ADMIN_PASSWORD constant.
+// Login state persists in sessionStorage so it clears when browser closes.
+
+export const ADMIN_PASSWORD = "Abulkhair";
+const STORAGE_KEY = "pwc_admin_session";
+
+// Module-level event so multiple useAuth() instances stay in sync
+const listeners = new Set<() => void>();
+function notify() {
+  listeners.forEach((fn) => fn());
+}
+
+export function loginAdmin(password: string): boolean {
+  if (password !== ADMIN_PASSWORD) return false;
+  if (typeof window !== "undefined") {
+    sessionStorage.setItem(STORAGE_KEY, "1");
+    notify();
+  }
+  return true;
+}
+
+export function logoutAdmin() {
+  if (typeof window !== "undefined") {
+    sessionStorage.removeItem(STORAGE_KEY);
+    notify();
+  }
+}
 
 export function useAuth() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
-      setUser(newSession?.user ?? null);
-      if (newSession?.user) {
-        // Defer role check to avoid deadlock
-        setTimeout(async () => {
-          const { data } = await supabase
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", newSession.user.id)
-            .eq("role", "admin")
-            .maybeSingle();
-          setIsAdmin(!!data);
-        }, 0);
-      } else {
-        setIsAdmin(false);
-      }
-    });
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-      if (session?.user) {
-        supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", session.user.id)
-          .eq("role", "admin")
-          .maybeSingle()
-          .then(({ data }) => setIsAdmin(!!data));
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    const check = () => {
+      setIsAdmin(sessionStorage.getItem(STORAGE_KEY) === "1");
+    };
+    check();
+    setLoading(false);
+    listeners.add(check);
+    window.addEventListener("storage", check);
+    return () => {
+      listeners.delete(check);
+      window.removeEventListener("storage", check);
+    };
   }, []);
 
-  return { session, user, isAdmin, loading };
+  return { isAdmin, loading };
 }
