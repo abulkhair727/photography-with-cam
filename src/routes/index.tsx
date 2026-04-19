@@ -35,7 +35,7 @@ function Index() {
   const handleUploadClick = () => {
     setSidebarOpen(false);
     if (!isAdmin) {
-      setToast("⚠️ ছবি আপলোড করতে admin লগইন করুন (/admin)");
+      setToast("⚠️ ছবি আপলোড করতে /admin এ লগইন করুন");
       return;
     }
     setTimeout(() => setModalOpen(true), 320);
