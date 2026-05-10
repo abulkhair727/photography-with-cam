@@ -53,6 +53,7 @@ function Index() {
 
   return (
     <>
+      <InstallBanner />
       <Navbar
         onMenuToggle={() => setSidebarOpen((o) => !o)}
         menuOpen={sidebarOpen}
